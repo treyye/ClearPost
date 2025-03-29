@@ -5,7 +5,8 @@ import {
   GoogleAuthProvider,
   signInWithPopup,
   signOut,
-  onAuthStateChanged
+  onAuthStateChanged,
+  User
 } from "firebase/auth";
 import {
   getFirestore,
@@ -13,9 +14,23 @@ import {
   addDoc,
   query,
   where,
-  getDocs
+  getDocs,
+  DocumentData
 } from "firebase/firestore";
 import { PieChart, Pie, Cell, Tooltip, Legend } from "recharts";
+
+// Define a union type for risk levels
+type Risk = "High" | "Medium" | "Low" | "Unknown";
+
+// Define a Tweet interface
+interface Tweet {
+  userId: string;
+  tweetId: string;
+  text: string;
+  risk: Risk;
+  reason: string;
+  createdAt: Date;
+}
 
 const firebaseConfig = {
   apiKey: "AIzaSyCR9CMOhlx-No9S2q4GfV_NDfxn8Febm8k",
@@ -32,21 +47,9 @@ const db = getFirestore(app);
 const provider = new GoogleAuthProvider();
 
 function App() {
-  import type { User as FirebaseUser } from "firebase/auth";
-
-type Tweet = {
-  userId: string;
-  tweetId: string;
-  text: string;
-  risk: "High" | "Medium" | "Low" | "Unknown";
-  reason: string;
-  createdAt: Date;
-};
-
-const [user, setUser] = useState<FirebaseUser | null>(null);
-const [tweets, setTweets] = useState<Tweet[]>([]);
-
-  const [darkMode, setDarkMode] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
+  const [tweets, setTweets] = useState<Tweet[]>([]);
+  const [darkMode, setDarkMode] = useState<boolean>(false);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
@@ -54,7 +57,7 @@ const [tweets, setTweets] = useState<Tweet[]>([]);
         setUser(currentUser);
 
         try {
-          const fetchRes = await fetch("https://clearpost.onrender.com/fetch-twitter", {
+          const fetchRes = await fetch("http://localhost:3001/fetch-twitter", {
             credentials: "include"
           });
           const result = await fetchRes.json();
@@ -63,10 +66,10 @@ const [tweets, setTweets] = useState<Tweet[]>([]);
           const tweets2 = result.tweets;
           if (!Array.isArray(tweets2)) throw new Error("Tweets not received correctly");
 
-          const analyzedTweets = [];
+          const analyzedTweets: Tweet[] = [];
           for (const tweet of tweets2) {
             try {
-              const aiRes = await fetch("https://clearpost.onrender.com/analyze-tweet", {
+              const aiRes = await fetch("http://localhost:3001/analyze-tweet", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ text: tweet.text })
@@ -75,14 +78,14 @@ const [tweets, setTweets] = useState<Tweet[]>([]);
               const aiResult = await aiRes.json();
               if (!Array.isArray(aiResult)) throw new Error("Invalid AI response");
 
-              const topLabels = aiResult.filter((r) => r.score > 0.5).map((r) => r.label);
-              const score = Math.max(...aiResult.map((r) => r.score));
-              const risk = score > 0.8 ? "High" : score > 0.4 ? "Medium" : "Low";
+              const topLabels = aiResult.filter((r: any) => r.score > 0.5).map((r: any) => r.label);
+              const score = Math.max(...aiResult.map((r: any) => r.score));
+              const risk: Risk = score > 0.8 ? "High" : score > 0.4 ? "Medium" : "Low";
               const reason = topLabels.length
                 ? `Detected: ${topLabels.join(", ")}`
                 : "No strong signals detected.";
 
-              const tweetDoc = {
+              const tweetDoc: Tweet = {
                 userId: currentUser.uid,
                 tweetId: tweet.id,
                 text: tweet.text,
@@ -96,7 +99,15 @@ const [tweets, setTweets] = useState<Tweet[]>([]);
               await new Promise((res) => setTimeout(res, 1500));
             } catch (error) {
               console.error("❌ AI error:", error);
-              analyzedTweets.push({ ...tweet, risk: "Unknown", reason: "AI failure" });
+              // Fallback: push tweet with Unknown risk
+              analyzedTweets.push({ 
+                userId: currentUser.uid,
+                tweetId: tweet.id,
+                text: tweet.text,
+                risk: "Unknown",
+                reason: "AI failure",
+                createdAt: new Date()
+              });
             }
           }
 
@@ -108,10 +119,11 @@ const [tweets, setTweets] = useState<Tweet[]>([]);
 
         const q = query(collection(db, "tweets"), where("userId", "==", currentUser.uid));
         const existingDocs = await getDocs(q);
-        const saved = existingDocs.docs.map(doc => doc.data());
+        const saved: DocumentData[] = existingDocs.docs.map(doc => doc.data());
         if (saved.length > 0 && saved.length > tweets.length) {
           console.log("📁 Loaded tweets from Firebase");
-          setTweets(saved);
+          // Typecast saved data to Tweet[] if you are confident of the structure
+          setTweets(saved as Tweet[]);
         }
       } else {
         setUser(null);
@@ -142,10 +154,10 @@ const [tweets, setTweets] = useState<Tweet[]>([]);
   };
 
   const connectTwitter = () => {
-    window.location.href = "https://clearpost.onrender.com/auth/twitter"; // starts OAuth 1.0a flow
+    window.location.href = "http://localhost:3001/auth/twitter"; // starts OAuth 1.0a flow
   };
 
-  const getRiskEmoji = (risk) => {
+  const getRiskEmoji = (risk: string): string => {
     switch (risk) {
       case "High": return "🔴";
       case "Medium": return "🟠";
@@ -154,82 +166,91 @@ const [tweets, setTweets] = useState<Tweet[]>([]);
     }
   };
 
-  // Define risk colors for the pie chart
-  const colors = { High: "#ef4444", Medium: "#f59e0b", Low: "#10b981", Unknown: "#9ca3af" };
+  // Define risk colors as a Record with keys of type Risk
+  const colors: Record<Risk, string> = { 
+    High: "#ef4444", 
+    Medium: "#f59e0b", 
+    Low: "#10b981", 
+    Unknown: "#9ca3af" 
+  };
 
-  // Compute data for the pie chart
-  const riskData = [
+  // Compute data for the pie chart with proper types
+  const riskData: { name: Risk; value: number }[] = [
     { name: "High", value: tweets.filter((t) => t.risk === "High").length },
     { name: "Medium", value: tweets.filter((t) => t.risk === "Medium").length },
     { name: "Low", value: tweets.filter((t) => t.risk === "Low").length },
     { name: "Unknown", value: tweets.filter((t) => t.risk === "Unknown").length }
   ];
 
-  // Inline styles with dark mode support and updated background colors
-  const styles = {
-    container: {
-      padding: "2rem",
-      fontFamily: "'Roboto', Arial, sans-serif",
-      width: "100vw",
-      height: "100vh",
-      backgroundColor: darkMode ? "#18191A" : "#f0f2f5",
-      color: darkMode ? "#e4e6eb" : "#1c1e21",
-      display: "flex",
-      flexDirection: "column",
-      alignItems: "center",
-      boxSizing: "border-box",
-      overflowY: "auto",
-      transition: "background-color 0.3s ease, color 0.3s ease"
-    },
-    header: {
-      fontSize: "3rem",
-      fontWeight: "bold",
-      marginBottom: "1.5rem",
-      textAlign: "center",
-      color: darkMode ? "#2e89ff" : "#1877f2",
-      transition: "color 0.3s ease"
-    },
-    button: {
-      padding: "0.75rem 1.5rem",
-      margin: "0.5rem",
-      fontSize: "1rem",
-      border: "none",
-      borderRadius: "0.375rem",
-      cursor: "pointer",
-      transition: "background-color 0.3s ease",
-      backgroundColor: darkMode ? "#2e89ff" : "#1877f2",
-      color: "#fff"
-    },
-    card: {
-      width: "100%",
-      maxWidth: "600px",
-      padding: "1rem",
-      backgroundColor: darkMode ? "#242526" : "#fff",
-      borderRadius: "0.5rem",
-      boxShadow: darkMode ? "0 4px 6px rgba(0, 0, 0, 0.8)" : "0 4px 6px rgba(0, 0, 0, 0.1)",
-      marginBottom: "2rem",
-      transition: "background-color 0.3s ease, box-shadow 0.3s ease"
-    },
-    listItem: {
-      backgroundColor: darkMode ? "#242526" : "#fff",
-      padding: "1rem",
-      borderRadius: "0.375rem",
-      boxShadow: darkMode ? "0 2px 4px rgba(0, 0, 0, 0.8)" : "0 2px 4px rgba(0, 0, 0, 0.05)",
-      marginBottom: "1rem",
-      width: "100%",
-      transition: "transform 0.2s, box-shadow 0.2s, background-color 0.3s ease"
-    },
-    tweetText: {
-      margin: "0.5rem 0"
-    },
-    textCenter: {
-      textAlign: "center"
-    }
+  // Inline styles with dark mode support (typed as React.CSSProperties)
+  const containerStyle: React.CSSProperties = {
+    padding: "2rem",
+    fontFamily: "'Roboto', Arial, sans-serif",
+    width: "100vw",
+    height: "100vh",
+    backgroundColor: darkMode ? "#18191A" : "#f0f2f5",
+    color: darkMode ? "#e4e6eb" : "#1c1e21",
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    boxSizing: "border-box",
+    overflowY: "auto",
+    transition: "background-color 0.3s ease, color 0.3s ease"
+  };
+
+  const headerStyle: React.CSSProperties = {
+    fontSize: "3rem",
+    fontWeight: "bold",
+    marginBottom: "1.5rem",
+    textAlign: "center",
+    color: darkMode ? "#2e89ff" : "#1877f2",
+    transition: "color 0.3s ease"
+  };
+
+  const buttonStyle: React.CSSProperties = {
+    padding: "0.75rem 1.5rem",
+    margin: "0.5rem",
+    fontSize: "1rem",
+    border: "none",
+    borderRadius: "0.375rem",
+    cursor: "pointer",
+    transition: "background-color 0.3s ease",
+    backgroundColor: darkMode ? "#2e89ff" : "#1877f2",
+    color: "#fff"
+  };
+
+  const cardStyle: React.CSSProperties = {
+    width: "100%",
+    maxWidth: "600px",
+    padding: "1rem",
+    backgroundColor: darkMode ? "#242526" : "#fff",
+    borderRadius: "0.5rem",
+    boxShadow: darkMode ? "0 4px 6px rgba(0, 0, 0, 0.8)" : "0 4px 6px rgba(0, 0, 0, 0.1)",
+    marginBottom: "2rem",
+    transition: "background-color 0.3s ease, box-shadow 0.3s ease"
+  };
+
+  const listItemStyle: React.CSSProperties = {
+    backgroundColor: darkMode ? "#242526" : "#fff",
+    padding: "1rem",
+    borderRadius: "0.375rem",
+    boxShadow: darkMode ? "0 2px 4px rgba(0, 0, 0, 0.8)" : "0 2px 4px rgba(0, 0, 0, 0.05)",
+    marginBottom: "1rem",
+    width: "100%",
+    transition: "transform 0.2s, box-shadow 0.2s, background-color 0.3s ease"
+  };
+
+  const tweetTextStyle: React.CSSProperties = {
+    margin: "0.5rem 0"
+  };
+
+  const textCenterStyle: React.CSSProperties = {
+    textAlign: "center"
   };
 
   return (
-    <div className="container animated-background" style={styles.container}>
-      {/* CSS for animations, hover effects, and improved background gradients */}
+    <div className="container animated-background" style={containerStyle}>
+      {/* CSS for animations, hover effects, and background gradients */}
       <style>{`
         @keyframes fadeIn {
           from { opacity: 0; transform: translateY(20px); }
@@ -244,9 +265,11 @@ const [tweets, setTweets] = useState<Tweet[]>([]);
           100% { background-position: 0% 50%; }
         }
         .animated-background {
-          background: ${darkMode 
-            ? "linear-gradient(135deg, #232526, #414345, #232526, #414345)" 
-            : "linear-gradient(135deg, #f0f2f5, #d9e2ef, #f0f2f5, #d9e2ef)"};
+          background: ${
+            darkMode 
+              ? "linear-gradient(135deg, #232526, #414345, #232526, #414345)" 
+              : "linear-gradient(135deg, #f0f2f5, #d9e2ef, #f0f2f5, #d9e2ef)"
+          };
           background-size: 400% 400%;
           animation: gradient 15s ease infinite;
         }
@@ -260,32 +283,32 @@ const [tweets, setTweets] = useState<Tweet[]>([]);
       `}</style>
       {/* Dark mode toggle button */}
       <div style={{ position: "absolute", top: "1rem", right: "1rem" }}>
-        <button className="button fade-in" style={styles.button} onClick={() => setDarkMode(!darkMode)}>
+        <button className="button fade-in" style={buttonStyle} onClick={() => setDarkMode(!darkMode)}>
           {darkMode ? "Light Mode" : "Dark Mode"}
         </button>
       </div>
-      <h1 className="fade-in" style={styles.header}>ClearPost</h1>
+      <h1 className="fade-in" style={headerStyle}>ClearPost</h1>
       {!user ? (
-        <button className="button fade-in" style={styles.button} onClick={handleLogin}>
+        <button className="button fade-in" style={buttonStyle} onClick={handleLogin}>
           Sign in with Google
         </button>
       ) : (
         <>
-          <p className="fade-in" style={styles.textCenter}>Welcome, {user.displayName}</p>
+          <p className="fade-in" style={textCenterStyle}>Welcome, {user.displayName}</p>
           <div className="fade-in">
-            <button className="button" style={styles.button} onClick={connectTwitter}>
+            <button className="button" style={buttonStyle} onClick={connectTwitter}>
               Connect Twitter
             </button>
-            <button className="button" style={styles.button} onClick={handleLogout}>
+            <button className="button" style={buttonStyle} onClick={handleLogout}>
               Log Out
             </button>
           </div>
-          <h2 className="fade-in" style={{ ...styles.header, fontSize: "1.5rem", marginTop: "2rem" }}>
+          <h2 className="fade-in" style={{ ...headerStyle, fontSize: "1.5rem", marginTop: "2rem" }}>
             📊 Risk Breakdown
           </h2>
-          <div className="card fade-in" style={styles.card}>
+          <div className="card fade-in" style={cardStyle}>
             {tweets.length === 0 ? (
-              <p className="fade-in" style={styles.textCenter}>No Data</p>
+              <p className="fade-in" style={textCenterStyle}>No Data</p>
             ) : (
               <PieChart width={300} height={300}>
                 <Pie
@@ -307,14 +330,14 @@ const [tweets, setTweets] = useState<Tweet[]>([]);
               </PieChart>
             )}
           </div>
-          <h2 className="fade-in" style={{ ...styles.header, fontSize: "1.5rem" }}>
+          <h2 className="fade-in" style={{ ...headerStyle, fontSize: "1.5rem" }}>
             Your Analyzed Tweets:
           </h2>
           <ul style={{ listStyleType: "none", padding: 0, width: "100%", maxWidth: "600px" }}>
             {tweets.map((tweet, index) => (
-              <li key={tweet.tweetId || index} className="list-item fade-in" style={styles.listItem}>
+              <li key={tweet.tweetId || index} className="list-item fade-in" style={listItemStyle}>
                 <strong>{getRiskEmoji(tweet.risk)} {tweet.risk} Risk</strong>
-                <p style={styles.tweetText}>{tweet.text}</p>
+                <p style={tweetTextStyle}>{tweet.text}</p>
                 <em>Reason: {tweet.reason}</em>
               </li>
             ))}
@@ -326,14 +349,3 @@ const [tweets, setTweets] = useState<Tweet[]>([]);
 }
 
 export default App;
-
-
-
-
-
-
-
-
-
-
-
