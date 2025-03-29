@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import React, { CSSProperties, useEffect, useState } from "react";
 import { initializeApp } from "firebase/app";
 import {
   getAuth,
@@ -47,6 +47,7 @@ const db = getFirestore(app);
 const provider = new GoogleAuthProvider();
 
 function App() {
+  // Explicitly type user as User | null and tweets as an array of Tweet
   const [user, setUser] = useState<User | null>(null);
   const [tweets, setTweets] = useState<Tweet[]>([]);
   const [darkMode, setDarkMode] = useState<boolean>(false);
@@ -78,7 +79,9 @@ function App() {
               const aiResult = await aiRes.json();
               if (!Array.isArray(aiResult)) throw new Error("Invalid AI response");
 
-              const topLabels = aiResult.filter((r: any) => r.score > 0.5).map((r: any) => r.label);
+              const topLabels = aiResult
+                .filter((r: any) => r.score > 0.5)
+                .map((r: any) => r.label);
               const score = Math.max(...aiResult.map((r: any) => r.score));
               const risk: Risk = score > 0.8 ? "High" : score > 0.4 ? "Medium" : "Low";
               const reason = topLabels.length
@@ -99,7 +102,6 @@ function App() {
               await new Promise((res) => setTimeout(res, 1500));
             } catch (error) {
               console.error("❌ AI error:", error);
-              // Fallback: push tweet with Unknown risk
               analyzedTweets.push({ 
                 userId: currentUser.uid,
                 tweetId: tweet.id,
@@ -122,7 +124,6 @@ function App() {
         const saved: DocumentData[] = existingDocs.docs.map(doc => doc.data());
         if (saved.length > 0 && saved.length > tweets.length) {
           console.log("📁 Loaded tweets from Firebase");
-          // Typecast saved data to Tweet[] if you are confident of the structure
           setTweets(saved as Tweet[]);
         }
       } else {
@@ -154,10 +155,11 @@ function App() {
   };
 
   const connectTwitter = () => {
-    window.location.href = "http://localhost:3001/auth/twitter"; // starts OAuth 1.0a flow
+    window.location.href = "http://localhost:3001/auth/twitter";
   };
 
-  const getRiskEmoji = (risk: string): string => {
+  // Explicitly type risk parameter as Risk
+  const getRiskEmoji = (risk: Risk): string => {
     switch (risk) {
       case "High": return "🔴";
       case "Medium": return "🟠";
@@ -174,16 +176,16 @@ function App() {
     Unknown: "#9ca3af" 
   };
 
-  // Compute data for the pie chart with proper types
+  // Compute pie chart data
   const riskData: { name: Risk; value: number }[] = [
-    { name: "High", value: tweets.filter((t) => t.risk === "High").length },
-    { name: "Medium", value: tweets.filter((t) => t.risk === "Medium").length },
-    { name: "Low", value: tweets.filter((t) => t.risk === "Low").length },
-    { name: "Unknown", value: tweets.filter((t) => t.risk === "Unknown").length }
+    { name: "High", value: tweets.filter(t => t.risk === "High").length },
+    { name: "Medium", value: tweets.filter(t => t.risk === "Medium").length },
+    { name: "Low", value: tweets.filter(t => t.risk === "Low").length },
+    { name: "Unknown", value: tweets.filter(t => t.risk === "Unknown").length }
   ];
 
-  // Inline styles with dark mode support (typed as React.CSSProperties)
-  const containerStyle: React.CSSProperties = {
+  // Inline styles with dark mode support
+  const containerStyle: CSSProperties = {
     padding: "2rem",
     fontFamily: "'Roboto', Arial, sans-serif",
     width: "100vw",
@@ -198,7 +200,7 @@ function App() {
     transition: "background-color 0.3s ease, color 0.3s ease"
   };
 
-  const headerStyle: React.CSSProperties = {
+  const headerStyle: CSSProperties = {
     fontSize: "3rem",
     fontWeight: "bold",
     marginBottom: "1.5rem",
@@ -207,7 +209,7 @@ function App() {
     transition: "color 0.3s ease"
   };
 
-  const buttonStyle: React.CSSProperties = {
+  const buttonStyle: CSSProperties = {
     padding: "0.75rem 1.5rem",
     margin: "0.5rem",
     fontSize: "1rem",
@@ -219,38 +221,42 @@ function App() {
     color: "#fff"
   };
 
-  const cardStyle: React.CSSProperties = {
+  const cardStyle: CSSProperties = {
     width: "100%",
     maxWidth: "600px",
     padding: "1rem",
     backgroundColor: darkMode ? "#242526" : "#fff",
     borderRadius: "0.5rem",
-    boxShadow: darkMode ? "0 4px 6px rgba(0, 0, 0, 0.8)" : "0 4px 6px rgba(0, 0, 0, 0.1)",
+    boxShadow: darkMode 
+      ? "0 4px 6px rgba(0, 0, 0, 0.8)" 
+      : "0 4px 6px rgba(0, 0, 0, 0.1)",
     marginBottom: "2rem",
     transition: "background-color 0.3s ease, box-shadow 0.3s ease"
   };
 
-  const listItemStyle: React.CSSProperties = {
+  const listItemStyle: CSSProperties = {
     backgroundColor: darkMode ? "#242526" : "#fff",
     padding: "1rem",
     borderRadius: "0.375rem",
-    boxShadow: darkMode ? "0 2px 4px rgba(0, 0, 0, 0.8)" : "0 2px 4px rgba(0, 0, 0, 0.05)",
+    boxShadow: darkMode 
+      ? "0 2px 4px rgba(0, 0, 0, 0.8)" 
+      : "0 2px 4px rgba(0, 0, 0, 0.05)",
     marginBottom: "1rem",
     width: "100%",
     transition: "transform 0.2s, box-shadow 0.2s, background-color 0.3s ease"
   };
 
-  const tweetTextStyle: React.CSSProperties = {
+  const tweetTextStyle: CSSProperties = {
     margin: "0.5rem 0"
   };
 
-  const textCenterStyle: React.CSSProperties = {
+  const textCenterStyle: CSSProperties = {
     textAlign: "center"
   };
 
   return (
     <div className="container animated-background" style={containerStyle}>
-      {/* CSS for animations, hover effects, and background gradients */}
+      {/* CSS for animations and dynamic background */}
       <style>{`
         @keyframes fadeIn {
           from { opacity: 0; transform: translateY(20px); }
@@ -281,7 +287,7 @@ function App() {
           box-shadow: 0 4px 8px rgba(0,0,0,0.1);
         }
       `}</style>
-      {/* Dark mode toggle button */}
+      {/* Dark mode toggle */}
       <div style={{ position: "absolute", top: "1rem", right: "1rem" }}>
         <button className="button fade-in" style={buttonStyle} onClick={() => setDarkMode(!darkMode)}>
           {darkMode ? "Light Mode" : "Dark Mode"}
