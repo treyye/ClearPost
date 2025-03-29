@@ -47,7 +47,7 @@ const db = getFirestore(app);
 const provider = new GoogleAuthProvider();
 
 function App() {
-  // Explicitly type user as User | null and tweets as an array of Tweet
+  // Explicitly type user and tweets
   const [user, setUser] = useState<User | null>(null);
   const [tweets, setTweets] = useState<Tweet[]>([]);
   const [darkMode, setDarkMode] = useState<boolean>(false);
@@ -102,7 +102,7 @@ function App() {
               await new Promise((res) => setTimeout(res, 1500));
             } catch (error) {
               console.error("❌ AI error:", error);
-              analyzedTweets.push({ 
+              analyzedTweets.push({
                 userId: currentUser.uid,
                 tweetId: tweet.id,
                 text: tweet.text,
@@ -119,9 +119,12 @@ function App() {
           console.error("❌ Failed to fetch/analyze tweets:", err);
         }
 
-        const q = query(collection(db, "tweets"), where("userId", "==", currentUser.uid));
+        const q = query(
+          collection(db, "tweets"),
+          where("userId", "==", currentUser.uid)
+        );
         const existingDocs = await getDocs(q);
-        const saved: DocumentData[] = existingDocs.docs.map(doc => doc.data());
+        const saved: DocumentData[] = existingDocs.docs.map((doc) => doc.data());
         if (saved.length > 0 && saved.length > tweets.length) {
           console.log("📁 Loaded tweets from Firebase");
           setTweets(saved as Tweet[]);
@@ -155,36 +158,40 @@ function App() {
   };
 
   const connectTwitter = () => {
-    window.location.href = "http://localhost:3001/auth/twitter";
+    window.location.href = "http://localhost:3001/auth/twitter"; // starts OAuth 1.0a flow
   };
 
   // Explicitly type risk parameter as Risk
   const getRiskEmoji = (risk: Risk): string => {
     switch (risk) {
-      case "High": return "🔴";
-      case "Medium": return "🟠";
-      case "Low": return "🟢";
-      default: return "⚪️";
+      case "High":
+        return "🔴";
+      case "Medium":
+        return "🟠";
+      case "Low":
+        return "🟢";
+      default:
+        return "⚪️";
     }
   };
 
   // Define risk colors as a Record with keys of type Risk
-  const colors: Record<Risk, string> = { 
-    High: "#ef4444", 
-    Medium: "#f59e0b", 
-    Low: "#10b981", 
-    Unknown: "#9ca3af" 
+  const colors: Record<Risk, string> = {
+    High: "#ef4444",
+    Medium: "#f59e0b",
+    Low: "#10b981",
+    Unknown: "#9ca3af"
   };
 
-  // Compute pie chart data
+  // Compute data for the pie chart
   const riskData: { name: Risk; value: number }[] = [
-    { name: "High", value: tweets.filter(t => t.risk === "High").length },
-    { name: "Medium", value: tweets.filter(t => t.risk === "Medium").length },
-    { name: "Low", value: tweets.filter(t => t.risk === "Low").length },
-    { name: "Unknown", value: tweets.filter(t => t.risk === "Unknown").length }
+    { name: "High", value: tweets.filter((t) => t.risk === "High").length },
+    { name: "Medium", value: tweets.filter((t) => t.risk === "Medium").length },
+    { name: "Low", value: tweets.filter((t) => t.risk === "Low").length },
+    { name: "Unknown", value: tweets.filter((t) => t.risk === "Unknown").length }
   ];
 
-  // Inline styles with dark mode support
+  // Inline styles with explicit typing and literal casts where needed
   const containerStyle: CSSProperties = {
     padding: "2rem",
     fontFamily: "'Roboto', Arial, sans-serif",
@@ -195,7 +202,7 @@ function App() {
     display: "flex",
     flexDirection: "column",
     alignItems: "center",
-    boxSizing: "border-box",
+    boxSizing: "border-box" as "border-box",
     overflowY: "auto",
     transition: "background-color 0.3s ease, color 0.3s ease"
   };
@@ -204,7 +211,7 @@ function App() {
     fontSize: "3rem",
     fontWeight: "bold",
     marginBottom: "1.5rem",
-    textAlign: "center",
+    textAlign: "center" as "center",
     color: darkMode ? "#2e89ff" : "#1877f2",
     transition: "color 0.3s ease"
   };
@@ -227,8 +234,8 @@ function App() {
     padding: "1rem",
     backgroundColor: darkMode ? "#242526" : "#fff",
     borderRadius: "0.5rem",
-    boxShadow: darkMode 
-      ? "0 4px 6px rgba(0, 0, 0, 0.8)" 
+    boxShadow: darkMode
+      ? "0 4px 6px rgba(0, 0, 0, 0.8)"
       : "0 4px 6px rgba(0, 0, 0, 0.1)",
     marginBottom: "2rem",
     transition: "background-color 0.3s ease, box-shadow 0.3s ease"
@@ -238,8 +245,8 @@ function App() {
     backgroundColor: darkMode ? "#242526" : "#fff",
     padding: "1rem",
     borderRadius: "0.375rem",
-    boxShadow: darkMode 
-      ? "0 2px 4px rgba(0, 0, 0, 0.8)" 
+    boxShadow: darkMode
+      ? "0 2px 4px rgba(0, 0, 0, 0.8)"
       : "0 2px 4px rgba(0, 0, 0, 0.05)",
     marginBottom: "1rem",
     width: "100%",
@@ -251,7 +258,7 @@ function App() {
   };
 
   const textCenterStyle: CSSProperties = {
-    textAlign: "center"
+    textAlign: "center" as "center"
   };
 
   return (
@@ -272,8 +279,8 @@ function App() {
         }
         .animated-background {
           background: ${
-            darkMode 
-              ? "linear-gradient(135deg, #232526, #414345, #232526, #414345)" 
+            darkMode
+              ? "linear-gradient(135deg, #232526, #414345, #232526, #414345)"
               : "linear-gradient(135deg, #f0f2f5, #d9e2ef, #f0f2f5, #d9e2ef)"
           };
           background-size: 400% 400%;
@@ -355,3 +362,4 @@ function App() {
 }
 
 export default App;
+
