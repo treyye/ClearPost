@@ -32,8 +32,20 @@ const db = getFirestore(app);
 const provider = new GoogleAuthProvider();
 
 function App() {
-  const [user, setUser] = useState(null);
-  const [tweets, setTweets] = useState([]);
+  import type { User as FirebaseUser } from "firebase/auth";
+
+type Tweet = {
+  userId: string;
+  tweetId: string;
+  text: string;
+  risk: "High" | "Medium" | "Low" | "Unknown";
+  reason: string;
+  createdAt: Date;
+};
+
+const [user, setUser] = useState<FirebaseUser | null>(null);
+const [tweets, setTweets] = useState<Tweet[]>([]);
+
   const [darkMode, setDarkMode] = useState(false);
 
   useEffect(() => {
