@@ -58,7 +58,7 @@ function App() {
         setUser(currentUser);
 
         try {
-          const fetchRes = await fetch("http://localhost:3001/fetch-twitter", {
+          const fetchRes = await fetch("https://clearpost.onrender.com/auth/twitter/fetch-twitter", {
             credentials: "include"
           });
           const result = await fetchRes.json();
@@ -70,7 +70,7 @@ function App() {
           const analyzedTweets: Tweet[] = [];
           for (const tweet of tweets2) {
             try {
-              const aiRes = await fetch("http://localhost:3001/analyze-tweet", {
+              const aiRes = await fetch("https://clearpost.onrender.com/auth/twitter/analyze-tweet", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ text: tweet.text })
@@ -158,7 +158,7 @@ function App() {
   };
 
   const connectTwitter = () => {
-    window.location.href = "http://localhost:3001/auth/twitter"; // starts OAuth 1.0a flow
+    window.location.href = "https://clearpost.onrender.com/auth/twitter/auth/twitter"; // starts OAuth 1.0a flow
   };
 
   // Explicitly type risk parameter as Risk
