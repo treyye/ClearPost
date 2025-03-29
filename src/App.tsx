@@ -158,7 +158,7 @@ function App() {
   };
 
   const connectTwitter = () => {
-    window.location.href = "https://clearpost.onrender.com/auth/twitter/auth/twitter"; // starts OAuth 1.0a flow
+    window.location.href = "https://clearpost.onrender.com/auth/twitter/"; // starts OAuth 1.0a flow
   };
 
   // Explicitly type risk parameter as Risk
