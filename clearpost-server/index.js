@@ -9,7 +9,7 @@ const querystring = require('querystring');
 // ✅ Updated Twitter credentials from your new Project App
 const CONSUMER_KEY = "NMAt4kO61RiPhTjEJJgec1zQj";
 const CONSUMER_SECRET = "pXr7dsLxLxOTaESQAV1RC7e6YlUPdryiMu5kdCxd9d0lEuOMVE";
-const CALLBACK_URL = "http://clearpost.onrender.com/callback";
+const CALLBACK_URL = "https://clearpost.onrender.com/callback";
 
 const app = express();
 const PORT = 3001;
