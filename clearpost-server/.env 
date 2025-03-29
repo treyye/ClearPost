@@ -1,0 +1,4 @@
+CLIENT_ID=RmNTdXlpRkJrbWMyb2t0WVNjVGg6MTpjaQ
+CLIENT_SECRET=your_real_twitter_client_secret_here
+REDIRECT_URI=http://localhost:5173/callback
+
