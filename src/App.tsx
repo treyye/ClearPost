@@ -1,4 +1,4 @@
-]import { CSSProperties, useEffect, useState } from "react";
+import { CSSProperties, useEffect, useState } from "react";
 import { initializeApp } from "firebase/app";
 import {
   getAuth,
@@ -59,7 +59,6 @@ function App() {
       if (currentUser) {
         setUser(currentUser);
         try {
-          // Use the absolute URL with the /api prefix
           const fetchRes = await fetch(`${BACKEND_API_URL}/fetch-twitter`, {
             credentials: "include"
           });
@@ -150,7 +149,7 @@ function App() {
     }
   };
 
-  // For OAuth login, use the backend URL without the /api prefix.
+  // OAuth login uses the backend URL without the /api prefix.
   const connectTwitter = () => {
     window.location.href = "https://clearpost.onrender.com/auth/twitter";
   };
@@ -348,5 +347,4 @@ function App() {
 }
 
 export default App;
-
 
