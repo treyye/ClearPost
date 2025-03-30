@@ -14,8 +14,13 @@ const CALLBACK_URL = "https://clearpost.onrender.com/callback";
 const app = express();
 const PORT = 3001;
 
-app.use(cors({ origin: "https://clearpost.onrender.com", credentials: true }));
+app.use(cors({
+  origin: "https://clearpost-miam309t0-trey-ellingtons-projects.vercel.app",
+  credentials: true
+}));
+
 app.use(express.json());
+
 app.use(session({
   secret: 'clearpost_secret',
   resave: false,
