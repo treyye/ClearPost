@@ -32,6 +32,9 @@ interface Tweet {
   createdAt: Date;
 }
 
+// Use an environment variable if available; otherwise default to your Render URL with /api prefix.
+const BACKEND_API_URL = process.env.REACT_APP_BACKEND_URL || "https://clearpost.onrender.com/api";
+
 const firebaseConfig = {
   apiKey: "AIzaSyCR9CMOhlx-No9S2q4GfV_NDfxn8Febm8k",
   authDomain: "clearpost-8d0a7.firebaseapp.com",
@@ -47,7 +50,6 @@ const db = getFirestore(app);
 const provider = new GoogleAuthProvider();
 
 function App() {
-  // Explicitly type user and tweets
   const [user, setUser] = useState<User | null>(null);
   const [tweets, setTweets] = useState<Tweet[]>([]);
   const [darkMode, setDarkMode] = useState<boolean>(false);
@@ -56,30 +58,24 @@ function App() {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       if (currentUser) {
         setUser(currentUser);
-
         try {
-          const fetchRes = await fetch("https://clearpost.onrender.com/fetch-twitter", {
+          const fetchRes = await fetch(`${BACKEND_API_URL}/fetch-twitter`, {
             credentials: "include"
           });
-          
           const result = await fetchRes.json();
           if (result.error) throw new Error(result.error);
-
           const tweets2 = result.tweets;
           if (!Array.isArray(tweets2)) throw new Error("Tweets not received correctly");
-
           const analyzedTweets: Tweet[] = [];
           for (const tweet of tweets2) {
             try {
-              const aiRes = await fetch("https://clearpost.onrender.com/analyze-tweet", {
+              const aiRes = await fetch(`${BACKEND_API_URL}/analyze-tweet`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ text: tweet.text })
               });
-
               const aiResult = await aiRes.json();
               if (!Array.isArray(aiResult)) throw new Error("Invalid AI response");
-
               const topLabels = aiResult
                 .filter((r: any) => r.score > 0.5)
                 .map((r: any) => r.label);
@@ -88,7 +84,6 @@ function App() {
               const reason = topLabels.length
                 ? `Detected: ${topLabels.join(", ")}`
                 : "No strong signals detected.";
-
               const tweetDoc: Tweet = {
                 userId: currentUser.uid,
                 tweetId: tweet.id,
@@ -97,7 +92,6 @@ function App() {
                 reason,
                 createdAt: new Date()
               };
-
               analyzedTweets.push(tweetDoc);
               await addDoc(collection(db, "tweets"), tweetDoc);
               await new Promise((res) => setTimeout(res, 1500));
@@ -113,13 +107,11 @@ function App() {
               });
             }
           }
-
           console.log("✅ Finished AI analysis, saving to state");
           setTweets(analyzedTweets);
         } catch (err) {
           console.error("❌ Failed to fetch/analyze tweets:", err);
         }
-
         const q = query(
           collection(db, "tweets"),
           where("userId", "==", currentUser.uid)
@@ -135,7 +127,6 @@ function App() {
         setTweets([]);
       }
     });
-
     return () => unsubscribe();
   }, []);
 
@@ -158,11 +149,11 @@ function App() {
     }
   };
 
+  // Use the backend URL for OAuth login (without the /api prefix)
   const connectTwitter = () => {
     window.location.href = "https://clearpost.onrender.com/auth/twitter";
   };
 
-  // Explicitly type risk parameter as Risk
   const getRiskEmoji = (risk: Risk): string => {
     switch (risk) {
       case "High":
@@ -176,7 +167,6 @@ function App() {
     }
   };
 
-  // Define risk colors as a Record with keys of type Risk
   const colors: Record<Risk, string> = {
     High: "#ef4444",
     Medium: "#f59e0b",
@@ -184,7 +174,6 @@ function App() {
     Unknown: "#9ca3af"
   };
 
-  // Compute data for the pie chart
   const riskData: { name: Risk; value: number }[] = [
     { name: "High", value: tweets.filter((t) => t.risk === "High").length },
     { name: "Medium", value: tweets.filter((t) => t.risk === "Medium").length },
@@ -192,7 +181,7 @@ function App() {
     { name: "Unknown", value: tweets.filter((t) => t.risk === "Unknown").length }
   ];
 
-  // Inline styles with explicit typing and literal casts where needed
+  // Inline styles
   const containerStyle: CSSProperties = {
     padding: "2rem",
     fontFamily: "'Roboto', Arial, sans-serif",
@@ -264,15 +253,12 @@ function App() {
 
   return (
     <div className="container animated-background" style={containerStyle}>
-      {/* CSS for animations and dynamic background */}
       <style>{`
         @keyframes fadeIn {
           from { opacity: 0; transform: translateY(20px); }
           to { opacity: 1; transform: translateY(0); }
         }
-        .fade-in {
-          animation: fadeIn 0.5s ease-out;
-        }
+        .fade-in { animation: fadeIn 0.5s ease-out; }
         @keyframes gradient {
           0% { background-position: 0% 50%; }
           50% { background-position: 100% 50%; }
@@ -295,7 +281,6 @@ function App() {
           box-shadow: 0 4px 8px rgba(0,0,0,0.1);
         }
       `}</style>
-      {/* Dark mode toggle */}
       <div style={{ position: "absolute", top: "1rem", right: "1rem" }}>
         <button className="button fade-in" style={buttonStyle} onClick={() => setDarkMode(!darkMode)}>
           {darkMode ? "Light Mode" : "Dark Mode"}
@@ -363,4 +348,3 @@ function App() {
 }
 
 export default App;
-

@@ -6,13 +6,14 @@ const OAuth = require('oauth-1.0a');
 const crypto = require('crypto');
 const querystring = require('querystring');
 
-// ✅ Updated Twitter credentials from your new Project App
+const PORT = process.env.PORT || 3001;
+
+// Twitter credentials and callback
 const CONSUMER_KEY = "NMAt4kO61RiPhTjEJJgec1zQj";
 const CONSUMER_SECRET = "pXr7dsLxLxOTaESQAV1RC7e6YlUPdryiMu5kdCxd9d0lEuOMVE";
 const CALLBACK_URL = "https://clearpost.onrender.com/callback";
 
 const app = express();
-const PORT = 3001;
 
 app.use(cors({
   origin: "https://clearpost-miam309t0-trey-ellingtons-projects.vercel.app",
@@ -36,7 +37,11 @@ const oauth = OAuth({
   },
 });
 
-// Step 1: Start Twitter login
+// -----------------
+// OAuth Endpoints
+// -----------------
+
+// Start Twitter login
 app.get('/auth/twitter', async (req, res) => {
   try {
     const requestData = {
@@ -60,10 +65,9 @@ app.get('/auth/twitter', async (req, res) => {
   }
 });
 
-// Step 2: Handle Twitter redirect
+// Handle Twitter redirect (callback)
 app.get('/callback', async (req, res) => {
   const { oauth_token, oauth_verifier } = req.query;
-
   try {
     const requestData = {
       url: "https://api.twitter.com/oauth/access_token",
@@ -80,26 +84,26 @@ app.get('/callback', async (req, res) => {
     req.session.screen_name = result.screen_name;
     req.session.user_id = result.user_id;
 
-    res.redirect("https://clearpost-miam309t0-trey-ellingtons-projects.vercel.app"); // your frontend redirect
+    // Redirect to your frontend
+    res.redirect("https://clearpost-miam309t0-trey-ellingtons-projects.vercel.app");
   } catch (err) {
     console.error("❌ Error exchanging access token:", err.message);
     res.status(500).json({ error: "Failed to exchange access token" });
   }
 });
 
-// ✅ Step 3: Fetch user's tweets using Twitter API v2
-app.get("/fetch-twitter", async (req, res) => {
-  const {
-    access_token,
-    access_token_secret,
-    user_id,
-    screen_name
-  } = req.session;
+// -----------------------
+// API Endpoints (Prefix)
+// -----------------------
 
+const apiRouter = express.Router();
+
+// Fetch user's tweets using Twitter API v2
+apiRouter.get("/fetch-twitter", async (req, res) => {
+  const { access_token, access_token_secret, user_id, screen_name } = req.session;
   if (!access_token || !access_token_secret || !user_id) {
     return res.status(401).json({ error: "Not authenticated with Twitter" });
   }
-
   try {
     const url = `https://api.twitter.com/2/users/${user_id}/tweets?max_results=5&tweet.fields=text`;
     const requestData = { url, method: "GET" };
@@ -114,9 +118,7 @@ app.get("/fetch-twitter", async (req, res) => {
     console.log("📡 Fetching from Twitter v2:", url);
 
     const response = await axios.get(url, { headers: authHeader });
-
     const tweets = response.data.data || [];
-
     console.log(`✅ Retrieved ${tweets.length} tweets from @${screen_name}`);
     res.json({
       user: { id: user_id, screen_name },
@@ -124,7 +126,7 @@ app.get("/fetch-twitter", async (req, res) => {
     });
   } catch (err) {
     console.error("❌ Twitter v2 API error:", err.response?.data || err.message);
-
+    // Return dummy tweet data in case of error
     res.json({
       user: { id: user_id || "mock", screen_name: screen_name || "mockuser" },
       tweets: [
@@ -135,10 +137,9 @@ app.get("/fetch-twitter", async (req, res) => {
   }
 });
 
-// Hugging Face AI analysis
-app.post("/analyze-tweet", async (req, res) => {
+// Hugging Face AI analysis for tweets
+apiRouter.post("/analyze-tweet", async (req, res) => {
   const { text } = req.body;
-
   try {
     const aiRes = await axios.post(
       "https://api-inference.huggingface.co/models/unitary/toxic-bert",
@@ -150,7 +151,6 @@ app.post("/analyze-tweet", async (req, res) => {
         }
       }
     );
-
     res.json(aiRes.data);
   } catch (err) {
     console.error("❌ Hugging Face error:", err.response?.data || err.message);
@@ -158,8 +158,11 @@ app.post("/analyze-tweet", async (req, res) => {
   }
 });
 
+// Mount API router under /api
+app.use("/api", apiRouter);
+
 app.listen(PORT, () => {
-  console.log(`🚀 ClearPost (OAuth 1.0a + Twitter API v2) running at https://clearpost.onrender.com`);
+  console.log(`🚀 ClearPost running at https://clearpost.onrender.com`);
 });
 
 
