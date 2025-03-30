@@ -11,12 +11,14 @@ const PORT = process.env.PORT || 3001;
 // Twitter credentials and callback URL
 const CONSUMER_KEY = "NMAt4kO61RiPhTjEJJgec1zQj";
 const CONSUMER_SECRET = "pXr7dsLxLxOTaESQAV1RC7e6YlUPdryiMu5kdCxd9d0lEuOMVE";
+// Callback URL remains unchanged (this is where Twitter sends the user)
 const CALLBACK_URL = "https://clearpost.onrender.com/callback";
 
 const app = express();
 
+// Update CORS to allow the correct frontend domain
 app.use(cors({
-  origin: "https://clearpost-miam309t0-trey-ellingtons-projects.vercel.app",
+  origin: "https://clearpost.vercel.app",
   credentials: true
 }));
 
@@ -83,8 +85,8 @@ app.get('/callback', async (req, res) => {
     req.session.screen_name = result.screen_name;
     req.session.user_id = result.user_id;
 
-    // Redirect user back to your frontend after successful authentication
-    res.redirect("https://clearpost-miam309t0-trey-ellingtons-projects.vercel.app");
+    // Redirect user back to the correct frontend domain
+    res.redirect("https://clearpost.vercel.app");
   } catch (err) {
     console.error("❌ Error exchanging access token:", err.message);
     res.status(500).json({ error: "Failed to exchange access token" });
@@ -156,12 +158,13 @@ apiRouter.post("/analyze-tweet", async (req, res) => {
   }
 });
 
-// Mount API routes under "/api"
+// Mount API endpoints under "/api"
 app.use("/api", apiRouter);
 
 app.listen(PORT, () => {
   console.log(`🚀 ClearPost running at https://clearpost.onrender.com`);
 });
+
 
 
 
