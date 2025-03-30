@@ -15,7 +15,6 @@ const CALLBACK_URL = "https://clearpost.onrender.com/callback";
 
 const app = express();
 
-// Allow requests from your frontend
 app.use(cors({
   origin: "https://clearpost-miam309t0-trey-ellingtons-projects.vercel.app",
   credentials: true
@@ -163,6 +162,7 @@ app.use("/api", apiRouter);
 app.listen(PORT, () => {
   console.log(`🚀 ClearPost running at https://clearpost.onrender.com`);
 });
+
 
 
 
