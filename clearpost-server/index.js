@@ -11,11 +11,12 @@ const PORT = process.env.PORT || 3001;
 // Twitter credentials and callback URL
 const CONSUMER_KEY = "NMAt4kO61RiPhTjEJJgec1zQj";
 const CONSUMER_SECRET = "pXr7dsLxLxOTaESQAV1RC7e6YlUPdryiMu5kdCxd9d0lEuOMVE";
+// Use your callback as registered with Twitter:
 const CALLBACK_URL = "https://clearpost.onrender.com/callback";
 
 const app = express();
 
-// Update CORS to allow the correct frontend domain
+// Update CORS: Allow requests from your frontend domain.
 app.use(cors({
   origin: "https://clearpost.vercel.app",
   credentials: true
@@ -23,17 +24,18 @@ app.use(cors({
 
 app.use(express.json());
 
-// Updated session configuration for cross-domain cookies
+// Updated session configuration for cross-domain cookies.
+// In production, secure cookies with sameSite 'none' are required for cross-domain requests.
 app.use(session({
   secret: 'clearpost_secret',
   resave: false,
   saveUninitialized: true,
   cookie: {
-    // Set the cookie domain so that it is sent with requests from your backend domain.
-    // Note: This value may need to be adjusted based on your setup.
-    domain: process.env.NODE_ENV === 'production' ? 'clearpost.onrender.com' : undefined,
-    secure: process.env.NODE_ENV === 'production',  // Cookies are sent only over HTTPS in production.
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax'
+    // If in production, the cookie will be set to secure and allow cross-site requests.
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+    // Optionally, set the cookie domain if needed:
+    domain: process.env.NODE_ENV === 'production' ? 'clearpost.onrender.com' : undefined
   }
 }));
 
@@ -93,7 +95,7 @@ app.get('/callback', async (req, res) => {
     req.session.screen_name = result.screen_name;
     req.session.user_id = result.user_id;
 
-    // Redirect user back to your frontend using the correct domain.
+    // Redirect user back to your correct frontend domain.
     res.redirect("https://clearpost.vercel.app");
   } catch (err) {
     console.error("❌ Error exchanging access token:", err.message);
@@ -109,8 +111,12 @@ const apiRouter = express.Router();
 
 // Fetch user's tweets using Twitter API v2
 apiRouter.get("/fetch-twitter", async (req, res) => {
+  // Log session data for debugging:
+  console.log("Session Data:", req.session);
+
   const { access_token, access_token_secret, user_id, screen_name } = req.session;
   if (!access_token || !access_token_secret || !user_id) {
+    console.error("Not authenticated with Twitter. Session:", req.session);
     return res.status(401).json({ error: "Not authenticated with Twitter" });
   }
   try {
@@ -172,6 +178,7 @@ app.use("/api", apiRouter);
 app.listen(PORT, () => {
   console.log(`🚀 ClearPost running at https://clearpost.onrender.com`);
 });
+
 
 
 
