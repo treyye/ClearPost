@@ -8,20 +8,20 @@ const querystring = require('querystring');
 
 const PORT = process.env.PORT || 3001;
 
-// Twitter credentials and callback
+// Twitter credentials and callback URL
 const CONSUMER_KEY = "NMAt4kO61RiPhTjEJJgec1zQj";
 const CONSUMER_SECRET = "pXr7dsLxLxOTaESQAV1RC7e6YlUPdryiMu5kdCxd9d0lEuOMVE";
 const CALLBACK_URL = "https://clearpost.onrender.com/callback";
 
 const app = express();
 
+// Allow requests from your frontend
 app.use(cors({
   origin: "https://clearpost-miam309t0-trey-ellingtons-projects.vercel.app",
   credentials: true
 }));
 
 app.use(express.json());
-
 app.use(session({
   secret: 'clearpost_secret',
   resave: false,
@@ -65,7 +65,7 @@ app.get('/auth/twitter', async (req, res) => {
   }
 });
 
-// Handle Twitter redirect (callback)
+// Handle Twitter OAuth callback
 app.get('/callback', async (req, res) => {
   const { oauth_token, oauth_verifier } = req.query;
   try {
@@ -84,7 +84,7 @@ app.get('/callback', async (req, res) => {
     req.session.screen_name = result.screen_name;
     req.session.user_id = result.user_id;
 
-    // Redirect to your frontend
+    // Redirect user back to your frontend after successful authentication
     res.redirect("https://clearpost-miam309t0-trey-ellingtons-projects.vercel.app");
   } catch (err) {
     console.error("❌ Error exchanging access token:", err.message);
@@ -126,7 +126,6 @@ apiRouter.get("/fetch-twitter", async (req, res) => {
     });
   } catch (err) {
     console.error("❌ Twitter v2 API error:", err.response?.data || err.message);
-    // Return dummy tweet data in case of error
     res.json({
       user: { id: user_id || "mock", screen_name: screen_name || "mockuser" },
       tweets: [
@@ -137,7 +136,7 @@ apiRouter.get("/fetch-twitter", async (req, res) => {
   }
 });
 
-// Hugging Face AI analysis for tweets
+// Hugging Face AI analysis endpoint
 apiRouter.post("/analyze-tweet", async (req, res) => {
   const { text } = req.body;
   try {
@@ -158,12 +157,13 @@ apiRouter.post("/analyze-tweet", async (req, res) => {
   }
 });
 
-// Mount API router under /api
+// Mount API routes under "/api"
 app.use("/api", apiRouter);
 
 app.listen(PORT, () => {
   console.log(`🚀 ClearPost running at https://clearpost.onrender.com`);
 });
+
 
 
 

@@ -32,7 +32,7 @@ interface Tweet {
   createdAt: Date;
 }
 
-// Use an environment variable if available; otherwise default to your Render URL with /api prefix.
+// Use an environment variable if available; otherwise default to your backend API URL with /api prefix.
 const BACKEND_API_URL = process.env.REACT_APP_BACKEND_URL || "https://clearpost.onrender.com/api";
 
 const firebaseConfig = {
@@ -181,7 +181,6 @@ function App() {
     { name: "Unknown", value: tweets.filter((t) => t.risk === "Unknown").length }
   ];
 
-  // Inline styles
   const containerStyle: CSSProperties = {
     padding: "2rem",
     fontFamily: "'Roboto', Arial, sans-serif",
@@ -348,3 +347,4 @@ function App() {
 }
 
 export default App;
+
