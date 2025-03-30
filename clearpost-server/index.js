@@ -15,7 +15,7 @@ const CALLBACK_URL = "https://clearpost.onrender.com/callback";
 
 const app = express();
 
-// Update CORS to allow the correct frontend domain
+// CORS configuration: Allow your frontend domain
 app.use(cors({
   origin: "https://clearpost.vercel.app",
   credentials: true
@@ -23,13 +23,14 @@ app.use(cors({
 
 app.use(express.json());
 
-// Updated session configuration for cross-site cookie support
+// Update session configuration for cross-domain cookies.
+// In production, secure cookies and sameSite 'none' are required.
 app.use(session({
   secret: 'clearpost_secret',
   resave: false,
   saveUninitialized: true,
   cookie: {
-    secure: process.env.NODE_ENV === 'production',           // true in production (HTTPS)
+    secure: process.env.NODE_ENV === 'production', // true in production (HTTPS)
     sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax'
   }
 }));
@@ -90,7 +91,7 @@ app.get('/callback', async (req, res) => {
     req.session.screen_name = result.screen_name;
     req.session.user_id = result.user_id;
 
-    // Redirect user back to your frontend using the correct domain.
+    // Redirect user to the correct frontend domain
     res.redirect("https://clearpost.vercel.app");
   } catch (err) {
     console.error("❌ Error exchanging access token:", err.message);
@@ -163,12 +164,13 @@ apiRouter.post("/analyze-tweet", async (req, res) => {
   }
 });
 
-// Mount API routes under "/api"
+// Mount API endpoints under "/api"
 app.use("/api", apiRouter);
 
 app.listen(PORT, () => {
   console.log(`🚀 ClearPost running at https://clearpost.onrender.com`);
 });
+
 
 
 
