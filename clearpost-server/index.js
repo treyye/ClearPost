@@ -26,15 +26,18 @@ app.use(express.json());
 
 // Updated session configuration for cross-domain cookies.
 // Removed the "domain" property so the cookie is set for the current backend domain.
+app.set('trust proxy', 1); // Add this line 👈
+
 app.use(session({
   secret: 'clearpost_secret',
   resave: false,
   saveUninitialized: true,
   cookie: {
-    secure: process.env.NODE_ENV === 'production',  // Cookies sent only over HTTPS in production.
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax'
+    secure: true,        // always secure in production
+    sameSite: 'none'     // allow cross-origin cookies
   }
 }));
+
 
 // OAuth 1.0a setup
 const oauth = OAuth({
