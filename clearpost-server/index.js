@@ -11,7 +11,6 @@ const PORT = process.env.PORT || 3001;
 // Twitter credentials and callback URL
 const CONSUMER_KEY = "NMAt4kO61RiPhTjEJJgec1zQj";
 const CONSUMER_SECRET = "pXr7dsLxLxOTaESQAV1RC7e6YlUPdryiMu5kdCxd9d0lEuOMVE";
-// Callback URL remains unchanged (this is where Twitter sends the user)
 const CALLBACK_URL = "https://clearpost.onrender.com/callback";
 
 const app = express();
@@ -23,10 +22,16 @@ app.use(cors({
 }));
 
 app.use(express.json());
+
+// Updated session configuration for cross-site cookie support
 app.use(session({
   secret: 'clearpost_secret',
   resave: false,
   saveUninitialized: true,
+  cookie: {
+    secure: process.env.NODE_ENV === 'production',           // true in production (HTTPS)
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax'
+  }
 }));
 
 // OAuth 1.0a setup
@@ -85,7 +90,7 @@ app.get('/callback', async (req, res) => {
     req.session.screen_name = result.screen_name;
     req.session.user_id = result.user_id;
 
-    // Redirect user back to the correct frontend domain
+    // Redirect user back to your frontend using the correct domain.
     res.redirect("https://clearpost.vercel.app");
   } catch (err) {
     console.error("❌ Error exchanging access token:", err.message);
@@ -158,12 +163,13 @@ apiRouter.post("/analyze-tweet", async (req, res) => {
   }
 });
 
-// Mount API endpoints under "/api"
+// Mount API routes under "/api"
 app.use("/api", apiRouter);
 
 app.listen(PORT, () => {
   console.log(`🚀 ClearPost running at https://clearpost.onrender.com`);
 });
+
 
 
 
